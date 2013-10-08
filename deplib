@@ -1,0 +1,10 @@
+#!/bin/bash
+
+function isRunning {
+PROCESS_NUM=$(ps -ef | grep "$1" | grep -v "grep" | wc -l)
+if [ $PROCESS_NUM -gt 0 ] ; then
+	return 1
+else
+	return 0
+fi
+}
