@@ -8,3 +8,13 @@ else
 	return 0
 fi
 }
+
+function isIPalive {
+PINGCOUNT=$(ping -c 1 "$1" | grep "1 received" | wc -l)
+if [ $PINGCOUNT -gt 0 ] ; then
+	return 1
+else
+	return 0
+fi
+}
+}
