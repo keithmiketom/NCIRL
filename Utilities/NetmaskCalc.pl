@@ -4,19 +4,84 @@ use warnings;
 
 # genMasks();
 
+# exit;
+
 # print genRandomAddress(),"\n";
 
-my $add = genRandomAddress();
-my $bits = int(rand(32));
-my $hostbits = 32 - $bits;
-my $mask = genmask($bits);
-my $net = $add & $mask;
-$net = $net .  "0" x (32-length($net));
+my $disp1; my $disp2;
 
-print $bits," ",$mask," ",$add," ",$net," ",$hostbits,"\n";
-print convBinAddress($mask)," ",convBinAddress($add)," ",convBinAddress($net),"\n";
+for (my $i=0; $i<30; $i++) {
+        my ($add,$class,$classmask,$bits,$hostbits,$mask,$net,$subnetbits,$subnets);
+        do {
+        $add = genRandomAddress();
+        ($class,$classmask) = classify($add);
+        } until ($classmask > 0);
+        do {
+        $bits = int(rand(32));
+        } until ($bits > $classmask);
+        $subnetbits = $bits - $classmask;
+        $subnets = 2^$subnetbits;
+        $hostbits = 32 - $bits;
+        $mask = genmask($bits);
+        $net = $add & $mask;
+        $net = $net .  "0" x (32-length($net));
+        my ($fsfh,$lsfh) = character($add,$classmask,$subnetbits,$hostbits);
+        $fsfh = convBinAddress($fsfh);
+        $lsfh = convBinAddress($lsfh);
+        my $qdisp = "Netmask bits : $bits, Dotted Decimal : ".convBinAddress($mask)."\n";
+        $qdisp .= "Address : ".convBinAddress($add)." Network : ".convBinAddress($net)."\n";
+        my $adisp = "Mask : ".bindotify($mask).", Add : ".bindotify($add).", Net : ".bindotify($net)."\n";
+        $adisp .= "Hostbits : $hostbits, Class : $class, Class Mask : $classmask, Subnet bits : $subnetbits\n";
+        $adisp .= "First subnet First Host : $fsfh, Last subnet First Host : $lsfh\n";
+        $disp1 .= $qdisp."\n";
+        $disp2 .= $qdisp.$adisp."\n";
+}
+
+print $disp1;
+print $disp2;
 
 exit;
+
+sub character {
+my ($add,$classmask,$subnetbits,$hostbits) = @_;
+my $network=substr($add,0,$classmask);
+my $firstsubnetfirsthost=$network.("0" x $subnetbits).("0" x ($hostbits-1))."1";
+my $lastsubnetfirsthost=$network.("1" x $subnetbits).("0" x ($hostbits-1))."1";
+return ($firstsubnetfirsthost,$lastsubnetfirsthost);
+}
+
+sub bindotify {
+my $binary = shift;
+my $byte1 = substr($binary,0,8);
+my $byte2 = substr($binary,8,8);
+my $byte3 = substr($binary,16,8);
+my $byte4 = substr($binary,24,8);
+return "$byte1.$byte2.$byte3.$byte4";
+}
+
+sub classify {
+my $ip = shift;
+my $class="E";
+my $netmask="";
+my ($b0,$b1,$b2,$b3) = map substr( $ip, $_, 1), 0 .. length($ip) -1;
+if (!$b0) {
+        $class="A";
+        $netmask=8;
+} elsif (!$b1) {
+        $class="B";
+        $netmask=16;
+} elsif (!$b2) {
+        $class="C";
+        $netmask=24;
+} elsif (!$b3) {
+        $class="D";
+        $netmask="";
+} else {
+        $class="E";
+        $netmask="";
+}
+return ($class,$netmask);
+}
 
 sub genRandomAddress {
 my $v;
